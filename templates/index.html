@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reverse DCF 데이터 추출기</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #faf9f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: #faf9f5;
+      border: 1px solid #e6dfd8;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(20,20,19,0.08);
+      padding: 40px;
+      width: 100%;
+      max-width: 640px;
+    }
+    .header { text-align: center; margin-bottom: 32px; }
+    .header h1 {
+      font-family: 'Cormorant Garamond', 'Tiempos Headline', Georgia, serif;
+      font-size: 26px;
+      font-weight: 400;
+      letter-spacing: -0.3px;
+      color: #141413;
+      margin-bottom: 6px;
+    }
+    .header p { font-size: 13px; color: #6c6a64; }
+
+    .upload-area {
+      border: 2px dashed #e6dfd8;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 16px;
+      position: relative;
+      background: #faf9f5;
+    }
+    .upload-area:hover, .upload-area.dragover {
+      border-color: #cc785c;
+      background: #f5f0e8;
+    }
+    .upload-area.file-selected {
+      border-color: #cc785c;
+      background: #f5f0e8;
+    }
+    .upload-area input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .upload-icon { font-size: 28px; margin-bottom: 8px; }
+    .upload-label { font-size: 13px; color: #3d3d3a; font-weight: 500; margin-bottom: 4px; }
+    .upload-hint { font-size: 11px; color: #8e8b82; }
+    .file-name { font-size: 12px; color: #cc785c; font-weight: 500; margin-top: 6px; }
+
+    .btn-extract {
+      width: 100%;
+      padding: 12px 20px;
+      height: 40px;
+      background: #cc785c;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 8px;
+    }
+    .btn-extract:hover:not(:disabled) { background: #a9583e; }
+    .btn-extract:disabled { background: #e6dfd8; color: #6c6a64; cursor: not-allowed; }
+
+    .status-box {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 8px;
+      display: none;
+    }
+    .status-box.loading {
+      background: #f5f0e8;
+      border: 1px solid #e6dfd8;
+      display: block;
+    }
+    .status-box.success {
+      background: #f5f0e8;
+      border: 1px solid #5db872;
+      display: block;
+    }
+    .status-box.error {
+      background: #fef2f2;
+      border: 1px solid #c64545;
+      display: block;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid #e6dfd8;
+      border-top-color: #cc785c;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status-text { font-size: 13px; color: #3d3d3a; }
+    .status-step { font-size: 12px; color: #6c6a64; margin-top: 6px; }
+
+    .btn-download {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 10px 20px;
+      background: #181715;
+      color: #faf9f5;
+      text-decoration: none;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .btn-download:hover { background: #252320; }
+
+    .warning-list {
+      margin-top: 10px;
+      padding: 10px 14px;
+      background: #fef9e7;
+      border: 1px solid #d4a017;
+      border-radius: 8px;
+      font-size: 11px;
+      color: #6c6a64;
+    }
+    .warning-list li { margin-left: 14px; margin-top: 3px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #e6dfd8;
+      margin: 24px 0;
+    }
+    .info-text { font-size: 11px; color: #8e8b82; text-align: center; margin-top: 16px; }
+
+    .upload-area.optional {
+      border: 1px dashed #e6dfd8;
+      background: #faf9f5;
+    }
+    .upload-area.optional:hover, .upload-area.optional.dragover {
+      border-color: #6c6a64;
+      background: #f5f0e8;
+    }
+    .optional-badge {
+      display: inline-block;
+      font-size: 10px;
+      color: #6c6a64;
+      background: #efe9de;
+      border-radius: 9999px;
+      padding: 1px 8px;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 Reverse DCF 데이터 추출기</h1>
+      <p>DART 재무제표 엑셀 파일 2개를 업로드하면 FCFE 분석용 데이터를 추출합니다</p>
+    </div>
+
+    <form id="extractForm">
+      <div class="upload-area" id="fsArea">
+        <input type="file" name="fs_file" id="fsFile" accept=".xlsx" required>
+        <div class="upload-icon">📄</div>
+        <div class="upload-label">재무제표 파일</div>
+        <div class="upload-hint">DART에서 다운받은 재무제표 .xlsx 파일</div>
+        <div class="file-name" id="fsFileName"></div>
+      </div>
+
+      <div class="upload-area" id="notesArea">
+        <input type="file" name="notes_file" id="notesFile" accept=".xlsx" required>
+        <div class="upload-icon">📋</div>
+        <div class="upload-label">재무제표 주석 파일</div>
+        <div class="upload-hint">DART에서 다운받은 재무제표 주석 .xlsx 파일</div>
+        <div class="file-name" id="notesFileName"></div>
+      </div>
+
+      <div class="upload-area optional" id="prevNotesArea">
+        <input type="file" name="prev_notes_file" id="prevNotesFile" accept=".xlsx">
+        <div class="optional-badge">선택</div>
+        <div class="upload-icon">📂</div>
+        <div class="upload-label">전년도 재무제표 주석 파일</div>
+        <div class="upload-hint">FY2023 감가상각비 보완용 · 전년도 사업보고서 주석 .xlsx</div>
+        <div class="file-name" id="prevNotesFileName"></div>
+      </div>
+
+      <button type="submit" class="btn-extract" id="extractBtn" disabled>
+        추출 시작
+      </button>
+    </form>
+
+    <div class="status-box" id="statusBox">
+      <div id="statusContent"></div>
+    </div>
+
+    <p class="info-text">연결 재무제표 기준 · 3개년 데이터 · 단위: 백만원</p>
+  </div>
+
+  <script>
+    const fsFile = document.getElementById('fsFile');
+    const notesFile = document.getElementById('notesFile');
+    const prevNotesFile = document.getElementById('prevNotesFile');
+    const fsArea = document.getElementById('fsArea');
+    const notesArea = document.getElementById('notesArea');
+    const prevNotesArea = document.getElementById('prevNotesArea');
+    const extractBtn = document.getElementById('extractBtn');
+    const statusBox = document.getElementById('statusBox');
+    const statusContent = document.getElementById('statusContent');
+
+    function updateBtn() {
+      extractBtn.disabled = !(fsFile.files.length && notesFile.files.length);
+    }
+
+    function applyFile(input, area, labelId, onChange) {
+      const name = input.files[0]?.name || '';
+      document.getElementById(labelId).textContent = name ? `✓ ${name}` : '';
+      area.classList.toggle('file-selected', !!name);
+      if (onChange) onChange();
+    }
+
+    function setInputFile(input, file, area, labelId, onChange) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      applyFile(input, area, labelId, onChange);
+    }
+
+    fsFile.addEventListener('change', () => applyFile(fsFile, fsArea, 'fsFileName', updateBtn));
+    notesFile.addEventListener('change', () => applyFile(notesFile, notesArea, 'notesFileName', updateBtn));
+    prevNotesFile.addEventListener('change', () => applyFile(prevNotesFile, prevNotesArea, 'prevNotesFileName', null));
+
+    // 클릭으로 파일 선택창 열기
+    fsArea.addEventListener('click', () => fsFile.click());
+    notesArea.addEventListener('click', () => notesFile.click());
+    prevNotesArea.addEventListener('click', () => prevNotesFile.click());
+
+    // 드래그 앤 드롭
+    function setupDrop(area, input, labelId, onChange) {
+      area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('dragover'); });
+      area.addEventListener('dragleave', () => area.classList.remove('dragover'));
+      area.addEventListener('drop', e => {
+        e.preventDefault();
+        area.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file && file.name.endsWith('.xlsx')) {
+          setInputFile(input, file, area, labelId, onChange);
+        }
+      });
+    }
+    setupDrop(fsArea, fsFile, 'fsFileName', updateBtn);
+    setupDrop(notesArea, notesFile, 'notesFileName', updateBtn);
+    setupDrop(prevNotesArea, prevNotesFile, 'prevNotesFileName', null);
+
+    const steps = [
+      '재무제표 파일 파싱 중...',
+      'Claude AI가 손익계산서 분석 중...',
+      'Claude AI가 현금흐름표 분석 중...',
+      'Claude AI가 주당이익 주석 분석 중...',
+      'Claude AI가 재무상태표 분석 중...',
+      '엑셀 파일 생성 중...',
+    ];
+    let stepInterval;
+    let stepIdx = 0;
+
+    function showLoading() {
+      statusBox.className = 'status-box loading';
+      stepIdx = 0;
+      statusContent.innerHTML = `
+        <div><span class="loading-spinner"></span><span class="status-text">추출을 시작합니다...</span></div>
+        <div class="status-step" id="stepText">${steps[0]}</div>
+      `;
+      stepInterval = setInterval(() => {
+        stepIdx = (stepIdx + 1) % steps.length;
+        const el = document.getElementById('stepText');
+        if (el) el.textContent = steps[stepIdx];
+      }, 4000);
+    }
+
+    function showSuccess(data) {
+      clearInterval(stepInterval);
+      statusBox.className = 'status-box success';
+      const warningsHtml = data.errors && data.errors.length
+        ? `<div class="warning-list">⚠ 일부 항목 추출 실패 (N/A 표시됨):<ul>
+            ${data.errors.map(e => `<li>${e}</li>`).join('')}
+           </ul></div>`
+        : '';
+      statusContent.innerHTML = `
+        <div class="status-text">✅ 추출 완료! <strong>${data.company_name}</strong> (${data.years?.join(', ')})</div>
+        <a href="/download/${encodeURIComponent(data.filename)}" class="btn-download">📥 엑셀 다운로드</a>
+        ${warningsHtml}
+      `;
+    }
+
+    function showError(msg) {
+      clearInterval(stepInterval);
+      statusBox.className = 'status-box error';
+      statusContent.innerHTML = `<div class="status-text">❌ ${msg}</div>`;
+    }
+
+    document.getElementById('extractForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      extractBtn.disabled = true;
+      showLoading();
+
+      const formData = new FormData(e.target);
+      try {
+        const res = await fetch('/extract', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          showSuccess(data);
+        } else {
+          showError(data.error || '알 수 없는 오류');
+        }
+      } catch (err) {
+        showError('서버 연결 오류: ' + err.message);
+      } finally {
+        extractBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
