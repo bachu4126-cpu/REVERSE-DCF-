@@ -175,13 +175,114 @@
       margin-bottom: 4px;
       font-weight: 500;
     }
+
+    /* ── DCF 섹션 ── */
+    .dcf-container {
+      margin-top: 20px;
+      border: 1px solid #e6dfd8;
+      border-radius: 12px;
+      padding: 32px 40px;
+      background: #faf9f5;
+    }
+    .dcf-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 22px;
+      font-weight: 400;
+      color: #141413;
+      margin-bottom: 4px;
+    }
+    .dcf-subtitle { font-size: 12px; color: #6c6a64; margin-bottom: 20px; }
+
+    .fcff-selector { margin-bottom: 16px; }
+    .fcff-selector-label { font-size: 11px; color: #6c6a64; font-weight: 500; margin-bottom: 8px; }
+    .fcff-options { display: flex; gap: 8px; flex-wrap: wrap; }
+    .fcff-option {
+      border: 1px solid #e6dfd8;
+      border-radius: 8px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #3d3d3a;
+      background: #fff;
+      transition: all 0.15s;
+    }
+    .fcff-option.selected { border-color: #cc785c; background: #f5f0e8; color: #cc785c; font-weight: 500; }
+    .fcff-option:hover { border-color: #cc785c; }
+    .fcff-option .fcff-yr { font-weight: 600; }
+    .fcff-option .fcff-val { display: block; font-size: 11px; color: #8e8b82; margin-top: 2px; }
+    .fcff-option.selected .fcff-val { color: #a9583e; }
+    .fcff-na { color: #c64545; font-size: 11px; }
+
+    .dcf-inputs { display: grid; gap: 12px; margin-bottom: 20px; }
+    .inp-row {
+      display: grid;
+      grid-template-columns: 160px 1fr 60px;
+      align-items: center;
+      gap: 10px;
+    }
+    .inp-label { font-size: 12px; color: #3d3d3a; }
+    .inp-slider { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 2px; background: #e6dfd8; outline: none; }
+    .inp-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #cc785c; cursor: pointer; }
+    .inp-num {
+      width: 60px;
+      padding: 4px 6px;
+      border: 1px solid #e6dfd8;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+      text-align: right;
+      color: #141413;
+      background: #fff;
+    }
+    .inp-num:focus { outline: none; border-color: #cc785c; }
+    .inp-unit { font-size: 11px; color: #8e8b82; }
+    .inp-plain-row {
+      display: grid;
+      grid-template-columns: 160px 180px 1fr;
+      align-items: center;
+      gap: 10px;
+    }
+    .inp-plain {
+      padding: 6px 10px;
+      border: 1px solid #e6dfd8;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      color: #141413;
+      background: #fff;
+      width: 100%;
+    }
+    .inp-plain:focus { outline: none; border-color: #cc785c; }
+
+    .dcf-results { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .result-card {
+      border: 1px solid #e6dfd8;
+      border-radius: 8px;
+      padding: 16px 18px;
+      background: #fff;
+    }
+    .result-card.highlight { border-color: #cc785c; background: #f5f0e8; }
+    .result-label { font-size: 11px; color: #6c6a64; margin-bottom: 4px; }
+    .result-value { font-size: 22px; font-weight: 600; color: #141413; }
+    .result-sub { font-size: 11px; color: #8e8b82; margin-top: 4px; }
+    .result-sub.up { color: #2e7d32; } .result-sub.down { color: #c64545; }
+
+    .dcf-error { font-size: 12px; color: #c64545; padding: 8px 12px; background: #fef2f2; border-radius: 6px; }
+
+    .sens-section { margin-top: 8px; }
+    .sens-label { font-size: 11px; color: #6c6a64; font-weight: 500; margin-bottom: 8px; }
+    .sens-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .sens-table th { background: #f5f0e8; padding: 6px 12px; text-align: center; color: #6c6a64; font-weight: 500; border-bottom: 1px solid #e6dfd8; }
+    .sens-table td { padding: 5px 12px; text-align: center; border-bottom: 1px solid #f0ece6; color: #3d3d3a; }
+    .sens-table tr.current { background: #f5f0e8; font-weight: 600; color: #cc785c; }
+    .sens-table tr.current td { color: #cc785c; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <h1>📊 Reverse DCF 데이터 추출기</h1>
-      <p>DART 재무제표 엑셀 파일 2개를 업로드하면 FCFE 분석용 데이터를 추출합니다</p>
+      <p>DART 재무제표 엑셀 파일 2개를 업로드하면 FCFF 분석용 데이터를 추출합니다</p>
     </div>
 
     <form id="extractForm">
@@ -220,6 +321,97 @@
     </div>
 
     <p class="info-text">연결 재무제표 기준 · 3개년 데이터 · 단위: 백만원</p>
+  </div>
+
+  <!-- DCF 섹션 -->
+  <div id="dcfSection" style="display:none; width:100%; max-width:680px; margin:0 auto;">
+    <div class="dcf-container">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+        <div class="dcf-title">📈 Reverse DCF 분석기</div>
+        <a id="dcfExcelBtn" href="#" class="btn-download" style="font-size:12px; padding:7px 14px; margin-top:4px;">📥 엑셀 다운로드</a>
+      </div>
+      <div class="dcf-subtitle" id="dcfSubtitle">현재 주가가 담고 있는 성장 기대치를 역산합니다</div>
+
+      <!-- 기준 FCFF 선택 -->
+      <div class="fcff-selector" style="margin-top:16px;">
+        <div class="fcff-selector-label">기준 FCFF (연도 선택)</div>
+        <div class="fcff-options" id="fcffOptions"></div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- 필수 입력 -->
+      <div style="margin-bottom:6px; font-size:11px; color:#6c6a64; font-weight:500;">역산 입력값</div>
+      <div class="dcf-inputs">
+        <div class="inp-plain-row">
+          <span class="inp-label" style="font-weight:600; color:#141413;">현재주가 <span style="color:#cc785c;">●</span></span>
+          <input type="number" class="inp-plain" id="priceInput" placeholder="예: 180000" min="0" style="border-color:#cc785c;">
+          <span class="inp-unit">원 (증권앱 확인)</span>
+        </div>
+        <div class="inp-row">
+          <span class="inp-label">WACC <span id="waccDisp">10.0</span>%</span>
+          <input type="range" class="inp-slider" id="waccRange" min="4" max="20" step="0.1" value="10">
+          <input type="number" class="inp-num" id="waccNum" min="4" max="20" step="0.1" value="10">
+        </div>
+        <div class="inp-row">
+          <span class="inp-label">영구성장률 g₂ <span id="g2Disp">3.0</span>%</span>
+          <input type="range" class="inp-slider" id="g2Range" min="0" max="10" step="0.1" value="3">
+          <input type="number" class="inp-num" id="g2Num" min="0" max="10" step="0.1" value="3">
+        </div>
+        <div class="inp-plain-row">
+          <span class="inp-label">예측기간 N</span>
+          <input type="number" class="inp-plain" id="nInput" min="1" max="20" value="5" style="width:80px">
+          <span class="inp-unit">년</span>
+        </div>
+      </div>
+
+      <div id="dcfError" class="dcf-error" style="display:none"></div>
+
+      <!-- 핵심 결과: 내재 성장률 -->
+      <div id="igHeroCard" style="display:none; border:2px solid #cc785c; border-radius:10px; padding:20px 24px; background:#f5f0e8; margin:16px 0; text-align:center;">
+        <div style="font-size:12px; color:#6c6a64; margin-bottom:6px;">이 주가가 담고 있는 성장 기대치</div>
+        <div style="font-size:38px; font-weight:700; color:#cc785c; letter-spacing:-1px;" id="impliedGVal">-</div>
+        <div style="font-size:12px; color:#8e8b82; margin-top:6px;" id="impliedGSub"></div>
+      </div>
+      <div id="igWaitCard" style="border:1px dashed #e6dfd8; border-radius:10px; padding:20px 24px; background:#faf9f5; margin:16px 0; text-align:center; color:#8e8b82; font-size:13px;">
+        현재주가를 입력하면 내재 성장률을 역산합니다
+      </div>
+
+      <!-- 민감도 테이블 -->
+      <div class="sens-section" id="sensSection" style="display:none">
+        <div class="sens-label">WACC 민감도 — 내재 성장률 g* 변화</div>
+        <table class="sens-table">
+          <thead><tr><th>WACC</th><th>내재 성장률 g*</th></tr></thead>
+          <tbody id="sensBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Forward DCF 비교 (선택) -->
+      <hr class="divider" style="margin-top:20px;">
+      <div style="margin-bottom:8px;">
+        <span style="font-size:11px; color:#6c6a64; font-weight:500;">Forward DCF 비교</span>
+        <span style="font-size:11px; color:#8e8b82;"> — 내 성장 가정을 입력하면 적정주가를 산출합니다</span>
+      </div>
+      <div class="dcf-inputs">
+        <div class="inp-row">
+          <span class="inp-label">내 성장 가정 g₁ <span id="g1Disp">12.0</span>%</span>
+          <input type="range" class="inp-slider" id="g1Range" min="-10" max="60" step="0.1" value="12">
+          <input type="number" class="inp-num" id="g1Num" min="-10" max="60" step="0.1" value="12">
+        </div>
+      </div>
+      <div class="dcf-results" style="margin-top:12px;">
+        <div class="result-card">
+          <div class="result-label">적정 주가 (내 가정 기준)</div>
+          <div class="result-value" id="intrinsicPriceVal">-</div>
+          <div class="result-sub" id="premiumVal">g₁ 조정 시 계산</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">내 가정 vs 시장 기대</div>
+          <div class="result-value" id="gCompareVal" style="font-size:16px;">-</div>
+          <div class="result-sub" id="gCompareSub"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -334,6 +526,7 @@
         const data = await res.json();
         if (data.success) {
           showSuccess(data);
+          if (data.dcf_data) initDCF(data.company_name, data.years, data.dcf_data, data.filename);
         } else {
           showError(data.error || '알 수 없는 오류');
         }
@@ -343,6 +536,193 @@
         extractBtn.disabled = false;
       }
     });
+
+    // ── DCF 계산 엔진 (순수 JS) ──────────────────────────────
+
+    function calcDCF(fcff0, wacc, g1, n, g2) {
+      let pv = 0;
+      for (let t = 1; t <= n; t++) pv += fcff0 * (1 + g1) ** t / (1 + wacc) ** t;
+      const fcffN = fcff0 * (1 + g1) ** n;
+      return pv + fcffN * (1 + g2) / (wacc - g2) / (1 + wacc) ** n;
+    }
+
+    function calcImpliedG(evMarket, fcff0, wacc, n, g2) {
+      if (fcff0 <= 0 || wacc <= g2) return null;
+      const f = g => { try { return calcDCF(fcff0, wacc, g, n, g2) - evMarket; } catch { return Infinity; } };
+      let lo = -0.5, hi = 5.0;
+      if (f(lo) * f(hi) > 0) return null;
+      let flo = f(lo);
+      for (let i = 0; i < 200; i++) {
+        const mid = (lo + hi) / 2;
+        if (Math.abs(hi - lo) < 1e-7) return mid;
+        if (f(mid) * flo > 0) { lo = mid; flo = f(mid); } else hi = mid;
+      }
+      return (lo + hi) / 2;
+    }
+
+    // ── DCF UI ──────────────────────────────────────────────
+
+    let _dcfState = { years: [], fcff: {}, net_debt: {}, shares: {}, selectedYr: null };
+
+    function initDCF(company, years, dcfData, filename) {
+      _dcfState = { years, ...dcfData, selectedYr: years[0] };
+
+      document.getElementById('dcfSubtitle').textContent =
+        `${company} · 현재 주가가 어떤 성장률을 담고 있는지 역산합니다`;
+
+      // 엑셀 다운로드 버튼
+      const excelBtn = document.getElementById('dcfExcelBtn');
+      excelBtn.href = `/download/${encodeURIComponent(filename)}`;
+
+      // FCFF 연도 선택 버튼
+      const optEl = document.getElementById('fcffOptions');
+      optEl.innerHTML = '';
+      years.forEach(yr => {
+        const val = dcfData.fcff[yr];
+        const btn = document.createElement('div');
+        btn.className = 'fcff-option' + (yr === years[0] ? ' selected' : '');
+        btn.innerHTML = `<span class="fcff-yr">FY${yr}</span>
+          <span class="fcff-val">${val !== null ? (val/1000).toFixed(0)+'억원' : '<span class=fcff-na>N/A</span>'}</span>`;
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.fcff-option').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          _dcfState.selectedYr = yr;
+          runDCF();
+        });
+        optEl.appendChild(btn);
+      });
+
+      document.getElementById('dcfSection').style.display = 'block';
+      document.getElementById('dcfSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      runDCF();
+    }
+
+    function syncSlider(rangeId, numId, dispId) {
+      const r = document.getElementById(rangeId);
+      const n = document.getElementById(numId);
+      const d = document.getElementById(dispId);
+      r.addEventListener('input', () => { n.value = r.value; if (d) d.textContent = parseFloat(r.value).toFixed(1); runDCF(); });
+      n.addEventListener('input', () => { r.value = n.value; if (d) d.textContent = parseFloat(n.value).toFixed(1); runDCF(); });
+    }
+    syncSlider('waccRange', 'waccNum', 'waccDisp');
+    syncSlider('g1Range',   'g1Num',   'g1Disp');
+    syncSlider('g2Range',   'g2Num',   'g2Disp');
+    document.getElementById('nInput').addEventListener('input', runDCF);
+    document.getElementById('priceInput').addEventListener('input', runDCF);
+
+    function fmt(v) { return v == null ? '-' : Math.round(v).toLocaleString('ko-KR'); }
+    function pctFmt(v) { return v == null ? '-' : (v * 100).toFixed(1) + '%'; }
+
+    function runDCF() {
+      const errEl       = document.getElementById('dcfError');
+      const igHeroCard  = document.getElementById('igHeroCard');
+      const igWaitCard  = document.getElementById('igWaitCard');
+      const igEl        = document.getElementById('impliedGVal');
+      const igSubEl     = document.getElementById('impliedGSub');
+      const sensEl      = document.getElementById('sensSection');
+      const ipriceEl    = document.getElementById('intrinsicPriceVal');
+      const premEl      = document.getElementById('premiumVal');
+      const gCmpEl      = document.getElementById('gCompareVal');
+      const gCmpSubEl   = document.getElementById('gCompareSub');
+
+      const wacc  = parseFloat(document.getElementById('waccNum').value) / 100;
+      const g1    = parseFloat(document.getElementById('g1Num').value)   / 100;
+      const g2    = parseFloat(document.getElementById('g2Num').value)   / 100;
+      const n     = parseInt(document.getElementById('nInput').value);
+      const price = parseFloat(document.getElementById('priceInput').value) || 0;
+      const yr    = _dcfState.selectedYr;
+      const fcff0 = _dcfState.fcff[yr];
+      const nd    = _dcfState.net_debt[yr] || 0;
+      const sh    = _dcfState.shares[yr];
+
+      errEl.style.display = 'none';
+
+      if (!fcff0 || fcff0 <= 0) {
+        errEl.textContent = 'FCFF₀가 없거나 0 이하입니다. 다른 연도를 선택해보세요.';
+        errEl.style.display = 'block';
+        igHeroCard.style.display = 'none'; igWaitCard.style.display = 'block';
+        sensEl.style.display = 'none';
+        return;
+      }
+      if (wacc <= g2) {
+        errEl.textContent = 'WACC는 영구성장률(g₂)보다 커야 합니다.';
+        errEl.style.display = 'block';
+        igHeroCard.style.display = 'none'; igWaitCard.style.display = 'block';
+        sensEl.style.display = 'none';
+        return;
+      }
+
+      // ── Reverse DCF (메인): 현재주가 → 내재 성장률 역산 ──
+      if (price > 0 && sh) {
+        const mktCap = price * sh / 1_000_000;
+        const evMkt  = mktCap + nd;
+        const ig = calcImpliedG(evMkt, fcff0, wacc, n, g2);
+
+        igHeroCard.style.display = 'block';
+        igWaitCard.style.display = 'none';
+        igEl.textContent = ig != null ? pctFmt(ig) : '계산 불가';
+        igSubEl.textContent = ig != null
+          ? `WACC ${(wacc*100).toFixed(1)}%, N=${n}년, g₂=${(g2*100).toFixed(1)}% 가정`
+          : 'WACC · g₂ 조합을 재확인하세요';
+
+        // 민감도: WACC 변화 → g* 변화
+        const tbody = document.getElementById('sensBody');
+        tbody.innerHTML = '';
+        for (let di = -4; di <= 4; di++) {
+          const w = Math.round((wacc + di * 0.01) * 10000) / 10000;
+          if (w <= g2 || w <= 0) continue;
+          const g_i = calcImpliedG(evMkt, fcff0, w, n, g2);
+          const tr = document.createElement('tr');
+          if (di === 0) tr.classList.add('current');
+          tr.innerHTML = `
+            <td>${(w * 100).toFixed(1)}%${di === 0 ? ' ◄' : ''}</td>
+            <td>${g_i != null ? pctFmt(g_i) : '-'}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+        sensEl.style.display = 'block';
+
+        // ── Forward DCF (보조): g1 가정 → 적정주가 ──
+        const ev       = calcDCF(fcff0, wacc, g1, n, g2);
+        const intPrice = sh ? (ev - nd) * 1_000_000 / sh : null;
+        ipriceEl.textContent = intPrice != null ? '₩ ' + fmt(intPrice) : '-';
+
+        if (intPrice && price > 0) {
+          const prem = (intPrice - price) / price;
+          premEl.textContent = (prem >= 0 ? '▲ ' : '▼ ') + pctFmt(Math.abs(prem)) + (prem >= 0 ? ' 저평가' : ' 고평가');
+          premEl.className = 'result-sub ' + (prem >= 0 ? 'up' : 'down');
+        } else {
+          premEl.textContent = ''; premEl.className = 'result-sub';
+        }
+
+        if (ig != null) {
+          const diff = g1 - ig;
+          gCmpEl.textContent = diff >= 0
+            ? `g₁ ${pctFmt(g1)} > g* ${pctFmt(ig)}`
+            : `g₁ ${pctFmt(g1)} < g* ${pctFmt(ig)}`;
+          gCmpSubEl.textContent = diff >= 0
+            ? '내 성장 가정이 시장보다 높음 → 저평가 가능성'
+            : '내 성장 가정이 시장보다 낮음 → 고평가 가능성';
+          gCmpSubEl.className = 'result-sub ' + (diff >= 0 ? 'up' : 'down');
+          gCmpEl.style.color = diff >= 0 ? '#2e7d32' : '#c64545';
+        } else {
+          gCmpEl.textContent = '-'; gCmpSubEl.textContent = '';
+        }
+
+      } else {
+        igHeroCard.style.display = 'none';
+        igWaitCard.style.display = 'block';
+        sensEl.style.display = 'none';
+
+        // 현재주가 없어도 Forward DCF는 계산
+        const ev       = calcDCF(fcff0, wacc, g1, n, g2);
+        const intPrice = sh ? (ev - nd) * 1_000_000 / sh : null;
+        ipriceEl.textContent = intPrice != null ? '₩ ' + fmt(intPrice) : '-';
+        premEl.textContent = '현재주가 입력 시 괴리율 계산';
+        premEl.className = 'result-sub';
+        gCmpEl.textContent = '-'; gCmpSubEl.textContent = '';
+      }
+    }
   </script>
 </body>
 </html>

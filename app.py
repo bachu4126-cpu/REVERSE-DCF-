@@ -6,6 +6,9 @@ from flask import Flask, render_template, request, jsonify, send_file
 from extractor.excel_reader import read_financial_statement, read_notes
 from extractor.rule_extractor import extract_all_data
 from extractor.excel_writer import create_output_excel
+from extractor.dcf_calculator import (
+    compute_fcff_data, calc_dcf, calc_implied_growth, sensitivity_implied_g
+)
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
@@ -68,12 +71,18 @@ def extract():
 
         create_output_excel(extracted, str(output_path))
 
+        dcf_data = compute_fcff_data(
+            extracted.get('sections', {}),
+            extracted.get('years', []),
+        )
+
         return jsonify({
             'success': True,
             'filename': output_filename,
             'company_name': company_name,
             'years': extracted.get('years', []),
             'errors': extracted.get('errors', []),
+            'dcf_data': dcf_data,
         })
 
     except Exception as e:
@@ -84,6 +93,53 @@ def extract():
         notes_path.unlink(missing_ok=True)
         if prev_notes_path:
             prev_notes_path.unlink(missing_ok=True)
+
+
+@app.route('/dcf_calc', methods=['POST'])
+def dcf_calc():
+    d = request.get_json(force=True)
+    try:
+        fcff0     = float(d['fcff0'])
+        wacc      = float(d['wacc'])
+        g1        = float(d['g1'])
+        g2        = float(d['g2'])
+        n         = int(d['n'])
+        net_debt  = float(d['net_debt'])
+        shares    = int(d['shares'])
+        price     = float(d.get('price') or 0)
+
+        if wacc <= g2:
+            return jsonify({'error': 'WACC는 영구성장률(g₂)보다 커야 합니다.'}), 400
+        if fcff0 <= 0:
+            return jsonify({'error': 'FCFF₀가 0 이하입니다. 기준 연도를 바꿔보세요.'}), 400
+
+        ev         = calc_dcf(fcff0, wacc, g1, n, g2)
+        equity_val = ev - net_debt
+        int_price  = equity_val * 1_000_000 / shares if shares else None
+
+        implied_g  = None
+        premium    = None
+        sensitivity = []
+
+        if price > 0 and shares:
+            mkt_cap  = price * shares / 1_000_000
+            ev_mkt   = mkt_cap + net_debt
+            implied_g = calc_implied_growth(ev_mkt, fcff0, wacc, n, g2)
+            if int_price:
+                premium = (int_price - price) / price
+            sensitivity = sensitivity_implied_g(fcff0, wacc, n, g2, ev_mkt)
+
+        return jsonify({
+            'success':         True,
+            'ev':              round(ev, 2),
+            'equity_val':      round(equity_val, 2),
+            'intrinsic_price': round(int_price) if int_price else None,
+            'premium_pct':     round(premium, 4) if premium is not None else None,
+            'implied_g':       round(implied_g, 6) if implied_g is not None else None,
+            'sensitivity':     sensitivity,
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/download/<path:filename>')

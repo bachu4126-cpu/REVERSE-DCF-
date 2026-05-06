@@ -22,6 +22,7 @@ INCOME_KEYWORDS = {
     "판매비와관리비": [
         "판매비와관리비", "판매관리비", "판관비", "영업비용(판매비",
         "판매비및관리비", "판매비 및 관리비",
+        "판매비관리비",  # "판매비·관리비" 정규화 결과 (· 제거)
     ],
     "영업이익": [
         "영업이익", "영업손익", "영업이익(손실)",
@@ -49,12 +50,6 @@ INCOME_KEYWORDS = {
 }
 
 CASHFLOW_KEYWORDS = {
-    "주식보상비용": [
-        "주식보상비용", "주식기준보상", "종업원주식보상", "주식결제형",
-        "주식기준보상비용", "종업원주식선택권비용",
-        "주식매입선택권비용", "주식보상거래",
-        "종업원급여(주식기준보상)",
-    ],
     "자산부채_변동": [
         "자산·부채의 변동", "자산부채의 변동", "운전자본의 변동",
         "영업활동으로 인한 자산·부채", "영업활동으로인한자산부채",
@@ -76,28 +71,6 @@ CASHFLOW_KEYWORDS = {
         "무형자산 매입", "개발비의 취득", "개발비 지출",
         "무형자산의 구입", "소프트웨어의 취득", "소프트웨어취득",
         "특허권의 취득", "개발비의지출", "무형자산의 증가",
-    ],
-    "차입금_유입": [
-        "차입금의 증가", "차입금 유입", "장단기차입금의 증가",
-        "단기차입금의 증가", "장기차입금의 증가", "차입금차입",
-        "차입금의 차입",
-        "단기차입금차입", "장기차입금차입",
-        "금융기관차입", "차입금의증가",
-        "단기금융부채의 증가", "장기금융부채의 증가",
-        "전환사채의 증가", "전환사채의 발행",
-        "신주인수권부사채의 발행", "신주인수권부사채의 증가",
-        "사채의 발행", "교환사채의 발행",
-    ],
-    "차입금_상환": [
-        "차입금의 감소", "차입금 상환", "장단기차입금의 감소",
-        "단기차입금의 감소", "장기차입금의 감소", "차입금상환",
-        "차입금의 상환",
-        "단기차입금상환", "장기차입금상환",
-        "금융기관차입금상환", "차입금의감소",
-        "단기금융부채의 감소", "장기금융부채의 감소",
-        "사채의 상환", "전환사채의 상환",
-        "신주인수권부사채의 상환",
-        "복합금융상품 상환", "복합금융상품상환",
     ],
 }
 
@@ -319,7 +292,7 @@ def _na_result(years: list[str], note: str = '') -> dict:
 
 
 def _zero_result(years: list[str], note: str = '') -> dict:
-    """값이 없는 항목을 0으로 처리 (FCFE 계산에서 무시됨)."""
+    """값이 없는 항목을 0으로 처리."""
     result = {f'fy{yr}': 0 for yr in years}
     result['matched_label'] = '해당 없음'
     result['note'] = note
@@ -394,25 +367,10 @@ def extract_income(rows: list[dict], years: list[str]) -> dict:
 def extract_cashflow(rows: list[dict], years: list[str]) -> dict:
     result = {}
     for key, kws in CASHFLOW_KEYWORDS.items():
-        if key in ('차입금_유입', '차입금_상환'):
-            # 전환사채·사채 등 여러 항목 합산
-            abs_val = (key == '차입금_상환')
-            found = _find_sum(rows, kws, years, abs_val=abs_val)
-        else:
-            found = _find_first(rows, kws, years)
-            if key in ('유형자산_취득', '무형자산_취득'):
-                found = _abs_result(found, years)
-
-        if found is None:
-            if key == '주식보상비용':
-                result[key] = _zero_result(
-                    years,
-                    '현금흐름표에 별도 행 없음. 0으로 처리 (타사에는 존재 가능)'
-                )
-            else:
-                result[key] = _na_result(years, _na_reason(rows, kws))
-        else:
-            result[key] = found
+        found = _find_first(rows, kws, years)
+        if key in ('유형자산_취득', '무형자산_취득'):
+            found = _abs_result(found, years)
+        result[key] = found if found is not None else _na_result(years, _na_reason(rows, kws))
     return result
 
 
@@ -543,47 +501,33 @@ def extract_all_data(fs_data: dict, notes_data: dict, prev_notes_data: dict | No
     else:
         errors.append('손익계산서 시트를 찾지 못했습니다.')
 
+    # 판관비 역산 fallback — 키워드 매칭 실패 시 기능별 분류 항등식으로 보완
+    sga = income.get('판매비와관리비', {})
+    if sga.get('matched_label') == 'N/A':
+        rev  = income.get('매출액', {})
+        cogs = income.get('매출원가', {})
+        ebit = income.get('영업이익', {})
+        computed: dict = {}
+        applied_sga = []
+        for yr in years:
+            r_v = rev.get(f'fy{yr}')
+            c_v = cogs.get(f'fy{yr}')
+            e_v = ebit.get(f'fy{yr}')
+            if r_v is not None and c_v is not None and e_v is not None:
+                computed[f'fy{yr}'] = r_v - c_v - e_v
+                applied_sga.append(yr)
+            else:
+                computed[f'fy{yr}'] = None
+        if applied_sga:
+            computed['matched_label'] = '역산 (매출액 - 매출원가 - 영업이익)'
+            computed['note'] = '기능별 분류 항등식 역산; 기타영업손익 있는 기업은 오차 가능'
+            income['판매비와관리비'] = computed
+
     cashflow = {}
     if fs_data.get('cashflow_rows'):
         cashflow = extract_cashflow(fs_data['cashflow_rows'], years)
     else:
         errors.append('현금흐름표 시트를 찾지 못했습니다.')
-
-    # 주식보상비용: 현금흐름표에 없을 때 D851100 주석에서 재탐색
-    sbc = cashflow.get('주식보상비용', {})
-    if '별도 행 없음' in sbc.get('note', '') and notes_data.get('sbp_rows'):
-        found = _find_first(
-            notes_data['sbp_rows'],
-            CASHFLOW_KEYWORDS['주식보상비용'],
-            years,
-            skip_zero=True,
-        )
-        if found:
-            found['note'] = 'D851100 주식기준보상 주석에서 추출'
-            cashflow['주식보상비용'] = found
-
-    # Fix 2 — SBC 연도별 fallback: 행은 매칭됐으나 특정 연도 값이 None인 경우
-    sbc = cashflow.get('주식보상비용', {})
-    if notes_data.get('sbp_rows') and '별도 행 없음' not in sbc.get('note', ''):
-        missing_sbc = [yr for yr in years if sbc.get(f'fy{yr}') is None]
-        if missing_sbc:
-            sbp_found = _find_first(
-                notes_data['sbp_rows'],
-                CASHFLOW_KEYWORDS['주식보상비용'],
-                years,
-                skip_zero=True,
-            )
-            if sbp_found:
-                applied = []
-                for yr in missing_sbc:
-                    v = sbp_found.get(f'fy{yr}')
-                    if v is not None:
-                        sbc[f'fy{yr}'] = v
-                        applied.append(yr)
-                if applied:
-                    yrs_str = ', '.join(f'FY{y}' for y in applied)
-                    old = sbc.get('note', '')
-                    sbc['note'] = (old + f'  {yrs_str}: D851100 주석 대체').strip()
 
     da = {}
     if notes_data.get('da_rows'):
@@ -725,6 +669,18 @@ def extract_all_data(fs_data: dict, notes_data: dict, prev_notes_data: dict | No
                 old = acc.get('note', '')
                 acc['note'] = (old + f'  {yrs_str}: 전년도 주석에서 보완').strip()
 
+    # Fix 6 — 최고령 연도 D&A flat proxy (전년도 주석도 없고 CF에도 없는 경우)
+    if len(years) >= 2:
+        oldest, prev = years[-1], years[-2]
+        for key in ('감가상각비', '무형자산상각비'):
+            acc = da.get(key)
+            if acc is None or acc.get('matched_label') == '해당 없음':
+                continue
+            if acc.get(f'fy{oldest}') is None and acc.get(f'fy{prev}') is not None:
+                acc[f'fy{oldest}'] = acc[f'fy{prev}']
+                old = acc.get('note', '')
+                acc['note'] = (old + f'  FY{oldest}: [추정] FY{prev} D&A 대체').strip()
+
     # Fix 3 — 응축형 현금흐름 자산부채_변동 역산
     # 자산부채_변동이 '계정 없음'이고 '영업으로부터 창출된 현금흐름' 행이 있으면 역산
     nwc = cashflow.get('자산부채_변동', {})
@@ -740,18 +696,21 @@ def extract_all_data(fs_data: dict, notes_data: dict, prev_notes_data: dict | No
                 ni_v  = income.get('당기순이익_지배', {}).get(f'fy{yr}')
                 if ni_v is None:
                     ni_v = eps.get('희석_순이익', {}).get(f'fy{yr}')
-                dep_v = da.get('감가상각비', {}).get(f'fy{yr}') or 0
+                dep_v  = da.get('감가상각비', {}).get(f'fy{yr}') or 0
                 amor_v = da.get('무형자산상각비', {}).get(f'fy{yr}') or 0
-                sbc_v  = cashflow.get('주식보상비용', {}).get(f'fy{yr}') or 0
                 if ocf_v is not None and ni_v is not None:
-                    computed[f'fy{yr}'] = ocf_v - ni_v - dep_v - amor_v - sbc_v
+                    computed[f'fy{yr}'] = ocf_v - ni_v - dep_v - amor_v
                     applied_yrs.append(yr)
                 else:
                     computed[f'fy{yr}'] = None
             if applied_yrs:
-                computed['matched_label'] = '역산 (영업창출CF - NI - D&A - SBC)'
+                computed['matched_label'] = '역산 (영업창출CF - NI - D&A)'
                 computed['note'] = '응축형 현금흐름 역산 근사값: 비현금 기타조정 항목(충당부채·외화환산 등) 포함됨'
                 cashflow['자산부채_변동'] = computed
+
+    # Fix 3 이후 ΔNWC 여전히 N/A면 경고
+    if cashflow.get('자산부채_변동', {}).get('matched_label') == 'N/A':
+        errors.append('운전자본 변동(ΔNWC) 추출 실패 — FCFF 계산에서 0으로 처리됨 (과대계상 가능)')
 
     balance = {}
     if fs_data.get('balance_rows'):
